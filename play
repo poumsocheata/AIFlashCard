@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Flashcards for Kids</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #e0f2fe; /* Light blue background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .game-section {
+            display: none; /* Hidden by default, managed by JS */
+        }
+
+        .flashcard-container {
+            perspective: 1000px; /* For 3D flip effect */
+            width: 100%;
+            max-width: 500px; /* Max width for the card */
+            height: 300px; /* Fixed height for consistency */
+            margin-bottom: 20px;
+        }
+
+        .flashcard {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            border-radius: 1.5rem; /* Rounded corners */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15); /* Soft shadow */
+        }
+
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .flashcard-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden; /* Hide the back face when not flipped */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            text-align: center;
+            border-radius: 1.5rem; /* Rounded corners */
+            font-size: 1.5rem; /* Larger text for kids */
+            font-weight: 600;
+            color: #333;
+            box-sizing: border-box;
+        }
+
+        .flashcard-front {
+            background-color: #ffffff; /* White front */
+            color: #1e3a8a; /* Dark blue text */
+        }
+
+        .flashcard-back {
+            background-color: #60a5fa; /* Blue back */
+            color: #ffffff; /* White text */
+            transform: rotateY(180deg);
+        }
+
+        .button-style {
+            padding: 12px 24px;
+            border-radius: 9999px; /* Pill-shaped buttons */
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .button-style:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        .button-primary {
+            background-image: linear-gradient(to right, #3b82f6, #2563eb); /* Blue gradient */
+            color: white;
+        }
+
+        .button-primary:active {
+            background-image: linear-gradient(to right, #2563eb, #1d4ed8);
+        }
+
+        .button-secondary {
+            background-color: #f3f4f6; /* Light gray */
+            color: #4b5563; /* Dark gray text */
+            border: 1px solid #d1d5db;
+        }
+
+        .button-secondary:hover {
+            background-color: #e5e7eb;
+        }
+
+        .button-secondary:active {
+            background-color: #d1d5db;
+        }
+
+        .quiz-option {
+            background-color: #ffffff;
+            border: 2px solid #a7d9ff; /* Light blue border */
+            color: #1e3a8a;
+            padding: 15px 20px;
+            border-radius: 1rem;
+            font-size: 1.1rem;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .quiz-option:hover {
+            background-color: #e0f2fe; /* Lighter blue on hover */
+            transform: translateY(-2px);
+        }
+
+        .quiz-option.correct {
+            background-color: #dcfce7; /* Light green */
+            border-color: #22c55e; /* Green border */
+            color: #16a34a; /* Dark green text */
+            font-weight: 700;
+        }
+
+        .quiz-option.incorrect {
+            background-color: #fee2e2; /* Light red */
+            border-color: #ef4444; /* Red border */
+            color: #dc2626; /* Dark red text */
+            font-weight: 700;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .flashcard-face {
+                font-size: 1.2rem;
+                padding: 15px;
+            }
+            .flashcard {
+                height: 250px;
+            }
+            .button-style {
+                padding: 10px 20px;
+                font-size: 0.9rem;
+            }
+            .controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .quiz-option {
+                font-size: 1rem;
+                padding: 12px 15px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-blue-50">
+    <div class="flex flex-col items-center justify-center min-h-screen w-full max-w-2xl mx-auto p-4">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-blue-800 mb-8 text-center drop-shadow-lg">
+            🤖 AI Explorer Flashcards 🚀
+        </h1>
+
+        <div id="flashcard-game-section" class="game-section block w-full flex flex-col items-center">
+            <div class="flashcard-container">
+                <div id="flashcard" class="flashcard">
+                    <div id="flashcard-front" class="flashcard-face flashcard-front">
+                        </div>
+                    <div id="flashcard-back" class="flashcard-face flashcard-back">
+                        </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-4 w-full justify-center controls">
+                <button id="prev-btn" class="button-style button-secondary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                    Previous
+                </button>
+                <button id="flip-btn" class="button-style button-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-3d"><path d="M16.5 3.5a2.5 2.5 0 0 0-5 0c0 1.4.6 2.8 1.6 3.8l2.9 2.8c.8.8 1.3 1.8 1.4 2.9.2 1.1-.3 2.2-1.1 3.1-1.3 1.3-3.4 1.3-4.7 0a2 2 0 0 1-3.4 1.4c-.9-.9-1.3-2-1.2-3.3C6 10.4 7.7 8.7 9.4 7.7c.9-.5 1.9-.8 3-1"/><path d="M17.5 17.5a2.5 2.5 0 0 0 5 0c0-1.4-.6-2.8-1.6-3.8l-2.9-2.8c-.8-.8-1.3-1.8-1.4-2.9-.2-1.1.3-2.2 1.1-3.1 1.3-1.3 3.4-1.3 4.7 0a2 2 0 0 1 3.4-1.4c.9.9 1.3 2 1.2 3.3.1 2.3-1.6 4-3.3 5-.9.5-1.9.8-3 1"/></svg>
+                    Flip Card
+                </button>
+                <button id="next-btn" class="button-style button-primary">
+                    Next
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                </button>
+            </div>
+
+            <p id="progress-text" class="mt-6 text-lg font-medium text-gray-700">Card 1 of 10</p>
+            <p id="completion-message" class="mt-4 text-xl font-bold text-green-700 hidden">You've completed all the cards! Great job!</p>
+
+            <button id="start-quiz-btn" class="button-style button-primary mt-8 text-xl">
+                Are you an AI Genius? Test your knowledge! 🧠
+            </button>
+        </div>
+
+        <div id="quiz-section" class="game-section w-full flex flex-col items-center p-4 bg-white rounded-lg shadow-xl hidden">
+            <h2 class="text-3xl font-bold text-blue-700 mb-6 text-center">Quiz Time!</h2>
+            <p id="quiz-question-number" class="text-lg font-medium text-gray-600 mb-4">Question 1 of X</p>
+            <div class="bg-blue-50 p-6 rounded-xl w-full mb-6 shadow-inner">
+                <p id="quiz-question" class="text-2xl font-semibold text-gray-800 text-center"></p>
+            </div>
+            <div id="quiz-options" class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                </div>
+            <button id="next-question-btn" class="button-style button-primary mt-8 hidden">
+                Next Question
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </button>
+        </div>
+
+        <div id="results-section" class="game-section w-full flex flex-col items-center p-6 bg-white rounded-lg shadow-xl hidden">
+            <h2 class="text-3xl font-bold text-blue-700 mb-6 text-center">Quiz Results!</h2>
+            <p class="text-2xl font-semibold text-gray-800 mb-4">You scored: <span id="final-score" class="text-green-600"></span> out of <span id="total-questions"></span></p>
+
+            <div id="badge-display" class="flex flex-col items-center mt-6 mb-8">
+                <img id="badge-image" src="" alt="Badge" class="w-32 h-32 mb-4 rounded-full border-4 border-yellow-400 p-2 shadow-lg hidden">
+                <p id="badge-text" class="text-xl font-bold text-yellow-700 text-center"></p>
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-4 w-full justify-center">
+                <button id="play-again-btn" class="button-style button-primary">
+                    Play Again!
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-ccw"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.76 2.75L3 8"/><path d="M3 3v5h5"/></svg>
+                </button>
+                <button id="back-to-flashcards-btn" class="button-style button-secondary">
+                    Back to Flashcards
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-book-open"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Array of flashcard data (term and definition)
+        const flashcards = [
+            {
+                term: "What is AI?",
+                definition: "AI stands for Artificial Intelligence. It's like teaching computers to think and learn, just like humans do!"
+            },
+            {
+                term: "What can AI do?",
+                definition: "AI can do many things! It can help self-driving cars, recognize faces in photos, play games, and even understand what you say to it."
+            },
+            {
+                term: "How does AI learn?",
+                definition: "AI learns by looking at lots of examples. If you show it many pictures of cats, it learns what a cat looks like! This is called 'machine learning.'"
+            },
+            {
+                term: "What is a 'robot'?",
+                definition: "A robot is a machine that can do tasks, sometimes controlled by AI. Not all AI is in robots, and not all robots use AI!"
+            },
+            {
+                term: "Is AI smarter than humans?",
+                definition: "AI is very good at specific tasks, like math or finding patterns. But humans have creativity, feelings, and common sense that AI doesn't have. So, no, not smarter in every way!"
+            },
+            {
+                term: "What is a 'chatbot'?",
+                definition: "A chatbot is an AI that can talk to you using text or voice, like a helpful assistant on a website or in an app."
+            },
+            {
+                term: "What is 'voice assistant'?",
+                definition: "A voice assistant is an AI that listens to your voice commands, like Siri or Google Assistant, and helps you find information or do tasks."
+            },
+            {
+                term: "Is AI safe?",
+                definition: "Just like any powerful tool, AI needs to be used responsibly. People are working hard to make sure AI is safe and fair for everyone."
+            },
+            {
+                term: "What is 'facial recognition'?",
+                definition: "Facial recognition is when AI can identify people by looking at their faces, like unlocking your phone with your face."
+            },
+            {
+                term: "What is 'recommendation system'?",
+                definition: "A recommendation system is an AI that suggests things you might like, based on what you've seen or bought before, like movies on Netflix or products on Amazon."
+            }
+        ];
+
+        // Quiz questions
+        const quizQuestions = [
+            {
+                question: "What does AI stand for?",
+                options: ["Artificial Intelligence", "Awesome Ideas", "Animal Instincts", "Automated Information"],
+                answer: "Artificial Intelligence"
+            },
+            {
+                question: "How does AI learn?",
+                options: ["By reading books", "By looking at many examples", "By sleeping", "By playing sports"],
+                answer: "By looking at many examples"
+            },
+            {
+                question: "Which of these is NOT something AI can typically do?",
+                options: ["Drive a car", "Understand your voice", "Feel emotions", "Play chess"],
+                answer: "Feel emotions"
+            },
+            {
+                question: "What is a 'chatbot'?",
+                options: ["A talking robot", "An AI that talks to you using text", "A type of fish", "A smart shoe"],
+                answer: "An AI that talks to you using text"
+            },
+            {
+                question: "Is AI smarter than humans in every way?",
+                options: ["Yes, always", "No, humans have creativity and feelings", "Only in sports", "Only when it's sunny"],
+                answer: "No, humans have creativity and feelings"
+            }
+        ];
+
+        // Get DOM elements for flashcards
+        const flashcardGameSection = document.getElementById('flashcard-game-section');
+        const flashcardElement = document.getElementById('flashcard');
+        const flashcardFront = document.getElementById('flashcard-front');
+        const flashcardBack = document.getElementById('flashcard-back');
+        const flipBtn = document.getElementById('flip-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const progressText = document.getElementById('progress-text');
+        const completionMessage = document.getElementById('completion-message');
+        const startQuizBtn = document.getElementById('start-quiz-btn');
+
+        // Get DOM elements for quiz
+        const quizSection = document.getElementById('quiz-section');
+        const quizQuestionNumber = document.getElementById('quiz-question-number');
+        const quizQuestion = document.getElementById('quiz-question');
+        const quizOptions = document.getElementById('quiz-options');
+        const nextQuestionBtn = document.getElementById('next-question-btn');
+
+        // Get DOM elements for results
+        const resultsSection = document.getElementById('results-section');
+        const finalScoreText = document.getElementById('final-score');
+        const totalQuestionsText = document.getElementById('total-questions');
+        const badgeDisplay = document.getElementById('badge-display');
+        const badgeImage = document.getElementById('badge-image');
+        const badgeText = document.getElementById('badge-text');
+        const playAgainBtn = document.getElementById('play-again-btn');
+        const backToFlashcardsBtn = document.getElementById('back-to-flashcards-btn');
+
+        // Game state variables
+        let currentCardIndex = 0;
+        let isFlipped = false;
+        let currentQuizIndex = 0;
+        let score = 0;
+
+        /**
+         * Shows a specific game section and hides others.
+         * @param {HTMLElement} sectionToShow - The section to make visible.
+         */
+        function showSection(sectionToShow) {
+            flashcardGameSection.classList.add('hidden');
+            quizSection.classList.add('hidden');
+            resultsSection.classList.add('hidden');
+            sectionToShow.classList.remove('hidden');
+        }
+
+        /**
+         * Updates the content of the flashcard based on the current index and flip state.
+         */
+        function updateCardContent() {
+            const currentCard = flashcards[currentCardIndex];
+            flashcardFront.textContent = currentCard.term;
+            flashcardBack.textContent = currentCard.definition;
+
+            // Reset flip state when changing cards
+            if (isFlipped) {
+                flashcardElement.classList.remove('flipped');
+                isFlipped = false;
+            }
+
+            // Update progress text
+            progressText.textContent = `Card ${currentCardIndex + 1} of ${flashcards.length}`;
+
+            // Hide completion message if not on the last card
+            completionMessage.classList.add('hidden');
+        }
+
+        /**
+         * Toggles the flip state of the flashcard.
+         */
+        function flipCard() {
+            flashcardElement.classList.toggle('flipped');
+            isFlipped = !isFlipped;
+        }
+
+        /**
+         * Navigates to the next flashcard.
+         * If at the last card, it shows a completion message and loops back to the start.
+         */
+        function showNextCard() {
+            if (currentCardIndex < flashcards.length - 1) {
+                currentCardIndex++;
+            } else {
+                // If it's the last card, show completion message and loop back to the start
+                completionMessage.classList.remove('hidden');
+                currentCardIndex = 0; // Loop back to the first card
+            }
+            updateCardContent();
+        }
+
+        /**
+         * Navigates to the previous flashcard.
+         * Loops to the last card if currently at the first card.
+         */
+        function showPrevCard() {
+            if (currentCardIndex > 0) {
+                currentCardIndex--;
+            } else {
+                currentCardIndex = flashcards.length - 1; // Loop to the last card
+            }
+            updateCardContent();
+        }
+
+        /**
+         * Starts the quiz.
+         */
+        function startQuiz() {
+            currentQuizIndex = 0;
+            score = 0;
+            showSection(quizSection);
+            displayQuestion();
+        }
+
+        /**
+         * Displays the current quiz question and its options.
+         */
+        function displayQuestion() {
+            nextQuestionBtn.classList.add('hidden'); // Hide next button until an answer is selected
+            quizOptions.innerHTML = ''; // Clear previous options
+
+            if (currentQuizIndex < quizQuestions.length) {
+                const q = quizQuestions[currentQuizIndex];
+                quizQuestionNumber.textContent = `Question ${currentQuizIndex + 1} of ${quizQuestions.length}`;
+                quizQuestion.textContent = q.question;
+
+                q.options.forEach(option => {
+                    const button = document.createElement('button');
+                    button.textContent = option;
+                    button.classList.add('quiz-option', 'w-full', 'block', 'text-left');
+                    button.onclick = () => selectAnswer(option, q.answer, button);
+                    quizOptions.appendChild(button);
+                });
+            } else {
+                showResults();
+            }
+        }
+
+        /**
+         * Handles the user's answer selection.
+         * @param {string} selectedOption - The option chosen by the user.
+         * @param {string} correctAnswer - The correct answer for the current question.
+         * @param {HTMLElement} clickedButton - The button element that was clicked.
+         */
+        function selectAnswer(selectedOption, correctAnswer, clickedButton) {
+            // Disable all options after one is selected
+            Array.from(quizOptions.children).forEach(button => {
+                button.disabled = true;
+                if (button.textContent === correctAnswer) {
+                    button.classList.add('correct'); // Highlight correct answer
+                } else if (button === clickedButton) {
+                    button.classList.add('incorrect'); // Highlight incorrect chosen answer
+                }
+            });
+
+            if (selectedOption === correctAnswer) {
+                score++;
+            }
+            nextQuestionBtn.classList.remove('hidden'); // Show next button
+        }
+
+        /**
+         * Moves to the next quiz question or shows results if quiz is finished.
+         */
+        function nextQuestion() {
+            currentQuizIndex++;
+            displayQuestion();
+        }
+
+        /**
+         * Displays the quiz results and awards a badge.
+         */
+        function showResults() {
+            showSection(resultsSection);
+            finalScoreText.textContent = score;
+            totalQuestionsText.textContent = quizQuestions.length;
+
+            let badgeSrc = '';
+            let badgeMessage = '';
+            const percentage = (score / quizQuestions.length) * 100;
+
+            if (percentage === 100) {
+                badgeSrc = 'https://placehold.co/128x128/FFD700/000000?text=AI+MASTER'; // Gold
+                badgeMessage = "AI Master! You're an AI Genius!";
+            } else if (percentage >= 70) {
+                badgeSrc = 'https://placehold.co/128x128/C0C0C0/000000?text=AI+EXPERT'; // Silver
+                badgeMessage = "AI Expert! You know a lot about AI!";
+            } else if (percentage >= 40) {
+                badgeSrc = 'https://placehold.co/128x128/CD7F32/000000?text=AI+LEARNER'; // Bronze
+                badgeMessage = "AI Learner! Keep practicing, you're doing great!";
+            } else {
+                badgeSrc = 'https://placehold.co/128x128/A9A9A9/000000?text=AI+BEGINNER'; // Grey
+                badgeMessage = "AI Beginner! Don't worry, keep learning with the flashcards!";
+            }
+
+            badgeImage.src = badgeSrc;
+            badgeImage.classList.remove('hidden');
+            badgeText.textContent = badgeMessage;
+        }
+
+        /**
+         * Resets the game to the initial flashcard view.
+         */
+        function resetGame() {
+            currentCardIndex = 0;
+            isFlipped = false;
+            currentQuizIndex = 0;
+            score = 0;
+            completionMessage.classList.add('hidden');
+            badgeImage.classList.add('hidden'); // Hide badge image
+            showSection(flashcardGameSection);
+            updateCardContent();
+        }
+
+        // Add event listeners
+        flipBtn.addEventListener('click', flipCard);
+        nextBtn.addEventListener('click', showNextCard);
+        prevBtn.addEventListener('click', showPrevCard);
+        startQuizBtn.addEventListener('click', startQuiz);
+        nextQuestionBtn.addEventListener('click', nextQuestion);
+        playAgainBtn.addEventListener('click', resetGame);
+        backToFlashcardsBtn.addEventListener('click', resetGame); // Same as play again for now
+
+        // Initialize the game when the window loads
+        window.onload = function() {
+            resetGame(); // Start with flashcards
+        };
+    </script>
+</body>
+</html>
